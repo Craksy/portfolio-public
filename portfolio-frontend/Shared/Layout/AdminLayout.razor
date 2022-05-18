@@ -1,0 +1,83 @@
+﻿@inherits Fluxor.Blazor.Web.Components.FluxorLayout
+@*
+@inject StateContainer _state
+*@
+@inject NavigationManager _navigation
+@inject SignOutSessionStateManager _signOutManager
+@inject AuthenticationStateProvider _authProvider
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+
+<MudThemeProvider Theme="@Dracula.draculaTheme"/>
+
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+
+<MudLayout>
+    <AuthorizeView>
+        <Authorized>
+            <MudAppBar Elevation="0">
+                <div>
+                    <a class="d-flex" Href="/">
+                        <MudIcon Icon="@Icons.Rounded.Code" Color="Color.Primary" Size="Size.Large"></MudIcon>
+                        <MudText Class="mx-4" Typo="Typo.h4" Color="Color.Primary">Brand</MudText>
+                    </a>
+                </div>
+                <MudSpacer/>
+                <div class="d-inline-flex">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary">Such Admin</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary">Very Moderate</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary">So Authorize</MudButton>
+                    <MudSpacer/>
+                </div>
+                <MudDivider/>
+                <MudButton Color="Color.Error" OnClick="BeginSignOut" Variant="Variant.Outlined" Size="Size.Small">Sign out</MudButton>
+            </MudAppBar>
+            <p>
+            </p>
+            <MudMainContent Style="margin: 50px 250px">
+                @if (_priviledged) {
+                    @Body
+                }
+                else {
+                    <p>you do not have sufficient permissions to view this page</p>
+                }
+            </MudMainContent>
+                
+        </Authorized>
+            <NotAuthorized>
+                <a href="authentication/login">Log in</a>
+            </NotAuthorized>
+        </AuthorizeView>
+</MudLayout>
+
+
+@code {
+    private bool _priviledged;
+    protected override async Task OnInitializedAsync() {
+        var state = await _authProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        var permissions = await GetPermissionsAsync();
+        var requiredPermissions = new[] { "create:post", "update:post", "delete:post" };
+        _priviledged = user.Identity is {IsAuthenticated: true } && requiredPermissions.All(p => permissions.Contains(p));
+    }
+    
+    private async Task<List<string>> GetPermissionsAsync(){
+        var state = await _authProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        
+        return user.Identity is {IsAuthenticated: true } ? state.User.Claims
+            .Where(c => c.Type == "permissions")
+            .Select(c => c.Value)
+            .ToList() 
+            : new List<string>();
+    }
+
+    private async Task BeginSignOut(MouseEventArgs args)
+    {
+        await _signOutManager.SetSignOutState();
+        _navigation.NavigateTo("authentication/logout");
+    }
+}

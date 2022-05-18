@@ -1,0 +1,79 @@
+@page "/"
+@using DataAccess
+
+@inject MarkdownPipeline _pipeline
+@*
+@inject StateContainer _state
+*@
+@inject IBlogData _blogPosts
+
+
+@if(!_doneLoading){
+    <MudProgressCircular Indeterminate="true" Color="Color.Tertiary"></MudProgressCircular>
+}else{
+    <div style="width: 80%; align-self: center">
+        @if(_posts.Count == 0){
+            <p>There are no posts to show</p>
+        }else{
+            @foreach(var p in _posts){
+                <MudCard Elevation="1" Style="margin: 3px;">
+                    <MudCardHeader>
+                        <MudText Color="Color.Primary" Typo="Typo.h3">@p.Title</MudText>
+                        <MudText Align="Align.End" Color="Color.Secondary" Typo="Typo.caption">@p.PublishDate.ToString("f")</MudText>
+                    </MudCardHeader>
+                    <MudCardContent>
+                            @(GetHtmlFromMarkdown(p.Preview))
+                    </MudCardContent>
+                    <MudCardActions Class="mx-5 my-2" Style="justify-content: end;">
+                        <MudButton Class="mb-2" Variant="Variant.Outlined" Color="Color.Tertiary" Link=@($"/viewpost/{p.Id}")>Read More</MudButton>
+                    </MudCardActions>
+                </MudCard>
+                <br/>
+                <br/>
+                <br/>
+            }
+        }
+        <div class="d-flex my-10">
+            <div style="flex: 12"></div>
+            <MudPagination Style="flex: 10" Color="Color.Primary" Count="4" Selected="@_pageNumber" SelectedChanged="OnPageChange"></MudPagination>
+            <div style="flex: 10"></div>
+        </div>
+    </div>
+}
+
+
+@code{
+    private const int PageSize = 5;
+    
+    private List<BlogPreviewDto> _posts = new();
+    private bool _doneLoading;
+    private int _pageNumber = 1;
+
+    private MarkupString GetHtmlFromMarkdown(string input){
+        return (MarkupString)Markdown.ToHtml(input, _pipeline);
+    }
+    
+    protected override async Task OnInitializedAsync() {
+        await LoadPage();
+    }
+
+    // TODO: use pagination here
+    private async Task LoadPage() {
+        var response = await _blogPosts.GetPage(PageSize, _pageNumber);
+        int totalPosts;
+        if (response.Headers.Contains("x-pagination")) {
+            if (!int.TryParse(response.Headers.GetValues("x-pagination").First(), out totalPosts)) {
+                Console.WriteLine("Not implemented yet"); 
+            }
+        }
+        _posts = response.Content.ToList();
+        StateHasChanged();
+        _doneLoading = true;
+    }
+
+    private async Task OnPageChange(int page) {
+        _pageNumber = page;
+        _doneLoading = false;
+        await LoadPage();
+    }
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>blazor-wasm-playground</title>
+    <base href="/" />
+    <!-- <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" /> -->
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="blazor_wasm_playground.styles.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!--<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/base16/gruvbox-dark-hard.min.css">-->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/base16/dracula.min.css">
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css" integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn" crossorigin="anonymous">
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js" integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8" crossorigin="anonymous"></script>
+
+    <script 
+        defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js"
+        integrity="sha384-vZTG03m+2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl" 
+        crossorigin="anonymous"></script>
+    </head>
+
+<body>
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/Fluxor.Blazor.Web/scripts/index.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script>
+        window.getFancy = () =>{
+            hljs.highlightAll();
+            renderMathInElement(document.body);
+        };
+
+        window.getContainerSizeById = (elementId) => {
+            var el = document.getElementById(elementId).parentElement;
+            return {
+                width: el.clientWidth,
+                height: el.clientHeight
+            }
+        };
+
+        window.getContainerSizeByClass = (className) => {
+            var el = document.getElementsByClassName(className)[0];
+            return {
+                width: el.clientWidth,
+                height: el.clientHeight
+            }
+        };
+
+        window.getFontSize = (elementId) => parseFloat(window.getComputedStyle(document.getElementById(elementId)).fontSize);
+
+    </script>
+</body>
+
+</html>

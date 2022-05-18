@@ -1,0 +1,66 @@
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Text.Json
+@using DataAccess
+@using Refit
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@inject IStorageData _storageData;
+
+<MudTable T="BlobDto" Items="_files"  OnRowClick="(e) => GotoContainer()" ServerData="GetDataAsync">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Blobs</MudText>
+        <MudSpacer />
+        <MudButton HtmlTag="label" 
+                   for="inputFile" 
+                   Style="position: relative;" 
+                   Variant="Variant.Outlined" 
+                   StartIcon="@Icons.Filled.Add">Upload new</MudButton>
+    </ToolBarContent>
+    <ColGroup>
+        <col style="width: 10%;" />
+        <col style="width: 500px" />
+        <col style="width: 500px" />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Image</MudTh>
+        <MudTh>Delete that shit</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Image">
+            <img style="max-width: 50%; height: auto" src="@context.Uri" alt="the blob image"/></MudTd>
+        <MudTd DataLabel="Delete that shit">
+            <MudIconButton OnClick="() => DeleteFile(context)" Icon="@Icons.Filled.Delete" Color="Color.Error" Style="height: 500px; width: 500px"/>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>No entries to show.</NoRecordsContent>
+    <LoadingContent>loading</LoadingContent>
+    <PagerContent><MudTablePager/></PagerContent>
+</MudTable>
+<InputFile id="inputFile" OnChange="UploadFile" hidden/>
+
+@code{
+    IEnumerable<BlobDto>? _files;
+    //private void GotoContainer(TableRowClickEventArgs<ContainerPagedData> eventArgs){
+    private void GotoContainer(){
+    }
+
+    private void UploadFile(InputFileChangeEventArgs e) {
+        _storageData.UploadNew(
+            "test-container", 
+            new StreamPart(e.File.OpenReadStream(), e.File.Name, e.File.ContentType), 
+            e.File.Name);
+    }
+    
+    private async Task DeleteFile(BlobDto file) {
+        await _storageData.Delete("test-container", file.Name);
+    }
+
+    private async Task<TableData<BlobDto>> GetDataAsync(TableState state){
+        var resp = await _storageData.GetAll("test-container", state.PageSize, state.Page+1);
+        var pagination = resp.AsPages();
+        return new TableData<BlobDto>{ TotalItems=pagination.TotalCount, Items=resp.Content}; 
+    }
+}

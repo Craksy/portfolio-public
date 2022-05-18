@@ -1,0 +1,61 @@
+@inject IStorageData _storageData
+@inject IState<ImagePickerState> _imagePickerState
+@inject StateFront _front
+
+<InputFile id="inputFile" OnChange="Upload" hidden/>
+
+<MudDialog DisableSidePadding="true" Class="image-picker-dialog" Style="height: 80%; width: 100%" ClassContent="pa-3" ContentStyle="height: 100%; overflow-y: scroll;">
+    <TitleContent>
+        <MudToolBar>
+            <MudButton HtmlTag="label" for="inputFile" Style="position: relative;" Variant="Variant.Outlined" StartIcon="@Icons.Filled.Add">Upload new</MudButton>
+            <MudSpacer/>
+            <MudTextField T="string" Placeholder="Search" AdornmentIcon="@Icons.Material.Filled.Search" Adornment="Adornment.Start"></MudTextField>
+            <MudSpacer/>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseDialog"></MudIconButton>
+        </MudToolBar>
+    </TitleContent>
+    
+    <DialogContent>
+        @if(_imagePickerState.Value.Blobs == null){
+            <MudProgressCircular></MudProgressCircular>
+        }else{
+            @* <div class="img-outer"> *@
+                <MudGrid class="d-flex img-container">
+                    @foreach(var blob in _imagePickerState.Value.Blobs){
+                        <MudItem xs="3">
+                            <MudPaper @onclick="() => Submit(blob.Uri)" Class="hover-effect d-flex align-center the-image">
+                                <div class="hover-effect">
+                                    <img src="@blob.Uri" alt="@blob.Name" style="width: 100%; height: auto"/>
+                                    <span class="img-caption">@blob.Name</span>
+                                </div>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            @* </div> *@
+        }
+        <MudPagination Count="@State.PageCount" SelectedChanged="e => _front.ChangePage(e)" Selected="@(State.CurrentPage)"/>
+        <p>selected: @State.CurrentPage</p>
+    </DialogContent>
+    <DialogActions>
+    </DialogActions>
+</MudDialog>
+
+@code{
+    [CascadingParameter] MudDialogInstance? DialogInstance {get;set;}
+    private ImagePickerState State => _imagePickerState.Value;
+
+
+    private void Upload(InputFileChangeEventArgs e){
+        _front.UploadNewImage("test-container",e.File.Name, e.File);
+    }
+
+    protected override void OnInitialized(){
+        _imagePickerState.StateChanged += (_, _) => StateHasChanged();
+        _front.FetchBlobs();
+    }
+
+    void Submit(string selection) => DialogInstance?.Close(DialogResult.Ok(selection));
+    void CloseDialog() => DialogInstance?.Close(DialogResult.Cancel());
+}
+

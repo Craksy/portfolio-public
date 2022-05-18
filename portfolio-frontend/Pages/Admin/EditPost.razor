@@ -1,0 +1,182 @@
+@* @page "/editpost/{Id:int?}" *@
+@layout AdminLayout
+
+@using System.Threading
+@using System.Net.Security
+@using System.Runtime.InteropServices
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+
+@inject MarkdownPipeline _pipeline
+@inject IState<EditorState> _editorState
+@inject IDispatcher _dispatcher
+@inject IBlogData _blogData
+@inject StateFront _front
+@inject IDialogService _dialogService
+
+@attribute [Authorize]
+
+
+<EditForm OnValidSubmit="HandleValidSubmit" Model="_validationModel">
+    <DataAnnotationsValidator/>
+    <div class="d-flex justify-space-between align-end">
+        <MudTextField 
+            TextChanged="(s) => _front.UpdateTitle(s)" T="string" 
+            @bind-Value="_validationModel.Title" Style="font-size: 50px"
+            Immediate="true"
+            Variant="Variant.Text"/>
+        <div class="d-flex ms-16">
+            <MudButton ButtonType="ButtonType.Submit"
+                       Disabled="@(!context.Validate())"
+                       Size="Size.Large"
+                       Variant="Variant.Filled"
+                       Color="Color.Success">
+                Save
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error">Cancel</MudButton>
+        </div>
+    </div>
+    
+    <div style="height: 100%" class="d-flex flex-row">
+        <div class="flex-grow-1 ma-1">
+            <MudToolBar>
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                    <MudIconButton Icon="@Icons.Filled.FormatBold" />
+                    <MudIconButton Icon="@Icons.Filled.FormatItalic" />
+                    <MudIconButton Icon="@Icons.Filled.FormatUnderlined" />
+                    <MudIconButton Icon="@Icons.Filled.FormatStrikethrough" />
+                </MudButtonGroup>
+                <MudSpacer/>
+
+                <MudDivider DividerType="DividerType.Middle" />
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                    <MudIconButton Icon="@Icons.Filled.FormatListBulleted" />
+                    <MudIconButton Icon="@Icons.Filled.FormatListNumbered" />
+                </MudButtonGroup>
+                <MudSpacer/>
+                <MudIconButton 
+                    OnClick='async () => await OpenImagePicker()'
+                    Variant="Variant.Outlined" 
+                    Color="Color.Primary" 
+                    Icon="@Icons.Filled.Image"/>
+                <MudSpacer/>
+                <MudButton OnClick="RefreshPreview" EndIcon="@Icons.Filled.Refresh">Refresh preview
+                </MudButton>
+                <MudSpacer/>
+                <MudSwitch Label="Autorefresh" Color="Color.Tertiary"
+                           CheckedChanged="_ => ToggleAutoRefresh()" Checked="@_editorState.Value.AutoRefresh">
+                </MudSwitch>
+                @*
+                <MudButton Variant="Variant.Outlined" OnClick="() => TogglePreview()"
+                           EndIcon="@(_editorState.Value.ShowPreview ?  Icons.Filled.ArrowBack : Icons.Filled.ArrowForward)">
+                    Preview
+                </MudButton>
+            *@
+            </MudToolBar>
+            <MudTextField @ref="_bodyTxtField" Lines="30" Style="max-height: 30%" @bind-Value="_validationModel.Content"
+                          TextChanged="(txt) => _front.UpdateContent(txt)"
+                          DebounceInterval="1000" OnDebounceIntervalElapsed="HandleDebounce"
+                          spellcheck="false" Variant="Variant.Outlined"  T="string">
+            </MudTextField>
+        </div>
+        
+        <MudHidden Style="height: 30em; width:100%" Class="flex-glow-1 py-3"
+                   IsHidden="@(!_editorState.Value.ShowPreview)">
+            <div class="d-flex flex-column" style="width: 50%; height: 70%; overflow-y: hidden">
+                <MudToolBar>
+                    <MudText Typo="Typo.h3">Preview</MudText>
+                </MudToolBar>
+                <div style="height: 100%; overflow-y: scroll;">
+                    <MudContainer Style="width: 100%; max-height: 90000px">
+                        @((MarkupString) Md)
+                    </MudContainer>
+                </div>
+            </div>
+        </MudHidden>
+    </div>
+    <ValidationSummary/>
+    <p>@_editorState.Value.ShowPreview</p>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+    
+    private MudTextField<string>? _bodyTxtField;
+
+    private bool _shouldRender = true;
+
+    private string Md { get; set; } = "";
+
+    private SubmitPostValidator _validationModel = new();
+
+    protected override void OnInitialized(){
+        _editorState.StateChanged += (_, state) => {
+            if((_validationModel.Title == state.Model.Title && _validationModel.Content == state.Model.Body))
+                return;
+            _validationModel.Content = state.Model.Body;
+            _validationModel.Title = state.Model.Title;
+            _shouldRender = true;
+            StateHasChanged();
+        };
+
+        _validationModel.Content = _editorState.Value.Model.Body;
+        _validationModel.Title = _editorState.Value.Model.Title;
+        _shouldRender = true;
+        
+        StateHasChanged();
+
+        base.OnInitialized();
+    }
+    
+    protected override void OnAfterRender(bool firstRender){
+        if(firstRender){
+            _shouldRender = true;
+            StateHasChanged();
+        }
+        base.OnAfterRender(firstRender);
+    }
+    
+    private async Task OpenImagePicker(){
+        var foo = _dialogService.Show<ImagePicker>("File Store", 
+            new DialogOptions{
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = false,
+        });
+        if (await foo.Result is {Cancelled: false, Data: string data}) {
+            _front.UpdateContent(_editorState.Value.Model.Body += $"\n![]({data})");
+            await RefreshPreview();
+        }
+    }
+
+    void ToggleAutoRefresh() {
+        _shouldRender = true;
+        _dispatcher.Dispatch(new ToggleAutorefresh());
+    }
+
+    void HandleValidSubmit(){
+        _front.SubmitPost(_editorState.Value.Model, _editorState.Value.IsNewPost ? ChangeMethod.Create : ChangeMethod.Update);
+    }
+
+    async Task HandleDebounce(string newText) {
+        if (_editorState.Value.AutoRefresh && _editorState.Value.ShowPreview) {
+            await RefreshPreview();
+        }
+    }
+
+    async Task RefreshPreview() {
+        await Task.Run(() => {
+            if (string.IsNullOrEmpty(_editorState.Value.Model.Body)) return;
+            _shouldRender = true;
+            Md = Markdown.ToHtml($"# {_editorState.Value.Model.Title}\n\n" + _editorState.Value.Model.Body, _pipeline);
+        });
+    }
+
+    protected override bool ShouldRender() {
+        if (!_shouldRender)
+            return false;
+        _shouldRender = false;
+        return true;
+    }
+
+}

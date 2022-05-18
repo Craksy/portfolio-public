@@ -1,0 +1,123 @@
+@using DataAccess
+@attribute [Authorize]
+@inject IDialogService _dialogService
+@inject IBlogData _blogPosts
+@inject NavigationManager _navigationManager
+@inject StateFront _front;
+@inject IDispatcher _dispatcher;
+
+<MudTable ServerData="@(new Func<TableState,Task<TableData<BlogPreviewDto>>>(ReloadData))" 
+          Items="@_posts" 
+          Hover="true" 
+          Loading="@_loading" 
+          CanCancelEdit="true" 
+          Breakpoint="Breakpoint.Sm">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Blog Posts</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start"
+            AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        <MudButton OnClick="() => TabContext?.ActivatePanel(1)"
+                   Class="ma-5" Color="Color.Tertiary"
+                   IconClass="@Icons.Filled.Add"
+                   Variant="Variant.Filled">
+            New
+        </MudButton>
+    </ToolBarContent>
+    <ColGroup>
+        <col style="width: 25px;" />
+        <col style="width: 150px;" />
+        <col style="width: 50%;" />
+        <col style="width: 150px;" />
+        <col style="width: 50px;" />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Preview</MudTh>
+        <MudTh>Date Added</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="Title">
+            <MudText Color="Color.Primary">@context.Title</MudText>
+        </MudTd>
+        <MudTd DataLabel="Thumbnail">
+            <MudText>@context.Preview</MudText>
+        </MudTd>
+        <MudTd DataLabel="Data Added">
+            <MudText>@context.PublishDate</MudText>
+        </MudTd>
+        <MudTd DataLabel="Actions">
+            <div class="d-flex flex-column">
+            <MudIconButton OnClick="() => GotoEditPost(context.Id)" Size="Size.Large" Icon="@Icons.Outlined.Edit" Color="Color.Success">Edit Post</MudIconButton>
+            <MudIconButton OnClick="async () => await DeletePost(context.Id)" Size="Size.Large" Icon="@Icons.Outlined.Delete" Color="Color.Error">Edit Post</MudIconButton>
+            </div>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+
+
+@code{
+    [Parameter]
+    public MudTabs? TabContext { get; set; }
+    
+    private const int PageSize = 10;
+    private IEnumerable<BlogPreviewDto> _posts = new List<BlogPreviewDto>();
+    private bool _loading = true;
+    private string? _searchString;
+    private BlogPreviewDto? _postBeforeEdit;
+
+    private int _pageNumber = 1;
+    
+    async Task<TableData<BlogPreviewDto>> ReloadData(TableState tableState) {
+        var response = await _blogPosts.GetPage(tableState.PageSize, tableState.Page + 1);
+        var pages = response.AsPages();
+        return new TableData<BlogPreviewDto> {TotalItems = pages.TotalCount, Items = response.Content};
+    }
+
+     private async Task DeletePost(int postId) {
+         DialogParameters parameters = new();
+         var dialog = _dialogService.Show<DeletePostDialog>("Delete Post", parameters, new DialogOptions{
+             MaxWidth = MaxWidth.Small,
+             FullWidth = false,
+             CloseButton = true,
+             NoHeader = false,
+         });
+         var res = await dialog.Result;
+         if(!res.Cancelled) {
+             await _blogPosts.DeletePost(postId);
+             await ReloadData(new TableState {PageSize = PageSize, Page = _pageNumber});
+             StateHasChanged();
+         }
+     }
+
+    private async Task<string> OpenImagePicker(string current = ""){
+        var foo = _dialogService.Show<ImagePicker>("File Store", 
+            new DialogOptions{
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = false,
+        });
+        var res = await foo.Result;
+        if(!res.Cancelled){
+            return res.Data.ToString() ?? string.Empty;
+        }
+        return current;
+    }
+
+    private void GotoEditPost(int id) {
+        _dispatcher.Dispatch(new LoadPostAction(id, () => TabContext?.ActivatePanel(1)));
+    }
+    
+    private void GotoNewPost() {
+        _dispatcher.Dispatch(new CreateNewPost());
+        TabContext?.ActivatePanel(1);
+    }
+
+}

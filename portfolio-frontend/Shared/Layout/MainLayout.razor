@@ -1,0 +1,32 @@
+@inherits Fluxor.Blazor.Web.Components.FluxorLayout
+@*
+@inject StateContainer _state
+*@
+
+
+<MudThemeProvider Theme="@Dracula.draculaTheme"/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <a class="d-flex" Href="/">
+        <MudIcon Icon="@Icons.Rounded.Code" Color="Color.Primary" Size="Size.Large"></MudIcon>
+        <MudText Class="mx-4" Typo="Typo.h4" Color="Color.Primary">Brand</MudText>
+        </a>
+        <MudSpacer/>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary">Articles</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary">Projects</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary">About me</MudButton>
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer Style="padding-top: 50px;" MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+
+@code {
+}

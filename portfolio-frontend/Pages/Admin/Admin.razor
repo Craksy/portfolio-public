@@ -1,0 +1,26 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize]
+
+
+<MudTabs @ref="_tabs" 
+         Style="max-width: 150%" 
+         Elevation="4" 
+         Rounded="true" 
+         Centered="true" 
+         Color="@Color.Primary">
+    <MudTabPanel Text="Blog">
+        <BlogAdmin TabContext="@_tabs"/>
+    </MudTabPanel>
+    <MudTabPanel Text="Edit Post">
+        <EditPost/>
+    </MudTabPanel>
+    <MudTabPanel Text="Files">
+        <FilesAdmin/>
+    </MudTabPanel>
+    <MudTabPanel Text="Other" Disabled="true"/>
+</MudTabs>
+
+@code{
+    MudTabs? _tabs;
+}

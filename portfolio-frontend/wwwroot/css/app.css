@@ -1,0 +1,14 @@
+code:not([class]){
+    border: 1px solid var(--mud-palette-text-primary);
+    color: var(--mud-palette-primary);
+    padding: 0px 2px;
+}
+
+a:not([class]){
+    color: var(--mud-palette-primary) !important;
+}
+
+.image-picker-dialog.mud-dialog > div:not([class]){
+    height: inherit;
+    outline-style: none;
+}

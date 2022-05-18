@@ -1,0 +1,16 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudText>Are you sure you want to delete this post?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Filled" Color="Color.Secondary">No I just wanted to see what the red button was for</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Error">yes. Nuke that shit</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance? DialogInstance { get; set; }
+    
+    void Submit() => DialogInstance?.Close(DialogResult.Ok(true));
+    void Cancel() => DialogInstance?.Close(DialogResult.Cancel());
+}

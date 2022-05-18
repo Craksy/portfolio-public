@@ -1,0 +1,55 @@
+@page "/viewpost/{Id:int}"
+@using DataAccess
+
+@inject IBlogData _blogData
+@inject ISnackbar _snackbar
+@inject IJSRuntime _js
+@*
+@inject StateContainer _state
+*@
+
+@if(_loading){
+    <MudProgressCircular Indeterminate="true"></MudProgressCircular>
+}else if(_post == null){
+    <h2>No such post</h2>
+}else{
+    <MudContainer>
+        <h1>@_post.Title</h1>
+        @if(_content != null){
+            <div @ref=_contentContainer>
+                @((MarkupString)_content)
+            </div>
+        }
+    </MudContainer>
+}
+
+
+@code{
+    [Parameter]
+    public int Id { get; set; }
+
+    private ElementReference _contentContainer;
+    private BlogPostDto? _post;
+    private bool _loading = true;
+    private string? _content;
+
+    readonly MarkdownPipeline _pipeline = new MarkdownPipelineBuilder()
+    .UseAdvancedExtensions()
+    .Build();
+
+    protected override async Task OnInitializedAsync(){
+        var postResult = await _blogData.Get(Id);
+        if(postResult.IsSuccessStatusCode) {
+            _post = postResult.Content;
+            _content = Markdown.ToHtml(_post.Body, _pipeline);
+        }
+        else {
+            _snackbar.Add("Error loading post", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool first){
+        await _js.InvokeVoidAsync("getFancy");
+    }
+}
